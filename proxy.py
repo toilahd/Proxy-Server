@@ -1,9 +1,14 @@
 from socket import *
 import sys 
 import threading
+import json
 
 SUPPORTED_METHODS = ['GET', 'POST', 'HEAD']
 
+def get_configs():
+    file_name = open('config.json')
+    configs = json.load(file_name)
+    return configs['supported_methods'], configs['cache_time'], configs['whtelisting_enabled'], configs['']
 
 def send_error(conn):
     with open("error403.html", 'r') as f:
@@ -74,6 +79,7 @@ def handle_Client(tcpClient, addr):
     else:
         #Gửi lỗi 403 
         send_error(tcpClient)
+        tcpClient.close()
         return
     
     #Tạo socket cho Webserver, kết nối với port 80
