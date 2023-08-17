@@ -5,8 +5,8 @@ import threading
 SUPPORTED_METHODS = ['GET', 'POST', 'HEAD']
 
 
-
 def send_error(conn):
+    
     with open("error403.html", 'r') as f:
         resdata = f.read()
     conn.send(b'HTTP/1.1 403 Forbidden\r\nContent-Type: text/html\r\n\r\n' + resdata.encode('ISO-8859-1'))
@@ -29,7 +29,7 @@ def handle_requests(msg):
         else:
             request += msg.partition("\r\n\r\n")[0] + "\r\nConnection: close\r\n\r\n" + msg.partition("\r\n\r\n")[2]
     else:
-        request += f"Host: {domain}\r\n\r\n"
+        request += f"Host: {domain}\r\n"
         request += f"Connection: close\r\n\r\n"
     return request
 def handle_Client(tcpClient, addr):
@@ -41,58 +41,58 @@ def handle_Client(tcpClient, addr):
         return
     try: 
         #print(f"Request: {addr}\n{msg}\r\n")
-        print(f"Request from: {addr}\r\n")
+        print(f"Receive connection from: {addr}\r\n")
     except:
         tcpClient.close()
         return
+    
     method, domain, file_path = extract_msg(msg)
     if method in SUPPORTED_METHODS:
         request = handle_requests(msg) 
     else:
         send_error()
         return
-    host = socket(AF_INET, SOCK_STREAM)
-    host.connect((domain, 80))
+    
+    server = socket(AF_INET, SOCK_STREAM)
+    server.connect((domain, 80))
     print(request)
-    host.send(request.encode())
+    server.send(request.encode())
     response = b""
     while True:
-        chunk = host.recv(4096) #config later
+        chunk = server.recv(4096) #config later
         if len(chunk) == 0:
             break
         response += chunk
-    filetouse = "/" + file_path
-    #print(filetouse)
     try:
         print(response.decode())
     except:
         print("Cannot decode")
+
     tcpClient.sendall(response)
+
 if len(sys.argv) <= 1:
     print('Usage: "python ProxyServer.py server_ip"\n[server_ip : It is the IP Address Of Proxy Server]')
     sys.exit(2)
 
+
 # Create a server socket, bind it to a port and start listening
-
-#SOCK_STREAM for the socket type, needed for TCP
 server = socket(AF_INET, SOCK_STREAM)
-
 # Re-use the socket   
 server.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
 
 HOST = sys.argv[1].split(':')[0]
 PORT = int(sys.argv[1].split(':')[1])
 
-server.bind((HOST, PORT))
 # become a server socket
+server.bind((HOST, PORT))
 server.listen(10)
+
 print(f'Proxy server is listening on {HOST}:{PORT}')
 
 while True: 
     #Start receiving data from the client
     print('Ready to serve...')
     tcpClient, addr = server.accept()
-    print('Received a connection from:', addr)
     thread = threading.Thread(target=handle_Client, args=(tcpClient, addr))
     #thread.setDaemon(True)
     #Daemon threads are threads that run in the background and are terminated when the main program exits. 
