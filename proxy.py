@@ -22,7 +22,7 @@ def extract_msg(msg):
 
 def handle_requests(msg):
     method, domain, file_path = extract_msg(msg)
-    request = f"{method} {file_path} HTTP/1.1"
+    request = f"{method} {file_path} HTTP/1.1\r\n"
     if method == "POST":
         if msg.find("Connection: ") != -1:
             request += msg.partition("\r\n")[2].partition("Connection: ")[0] + "Connection: close\r\n" + msg.partition("Connection: ")[2].partition("\r\n")[2]
@@ -35,23 +35,26 @@ def handle_requests(msg):
 def handle_Client(tcpClient, addr):
     #msg receiving from client
     msg = tcpClient.recv(4096).decode("ISO-8859-1")
+    #extract the info we need from the given message
+    
     if not msg:
         return
     try: 
-        print(f"Request: {addr}\n{msg}\r\n")
+        #print(f"Request: {addr}\n{msg}\r\n")
+        print(f"Request from: {addr}\r\n")
     except:
         tcpClient.close()
         return
-    #extract the info we need from the given message
     method, domain, file_path = extract_msg(msg)
-    print(domain + "fuck")
     if method in SUPPORTED_METHODS:
         request = handle_requests(msg) 
     else:
         send_error()
+        return
     host = socket(AF_INET, SOCK_STREAM)
     host.connect((domain, 80))
-    host.send(request)
+    print(request)
+    host.send(request.encode())
     response = b""
     while True:
         chunk = host.recv(4096) #config later
@@ -60,7 +63,10 @@ def handle_Client(tcpClient, addr):
         response += chunk
     filetouse = "/" + file_path
     #print(filetouse)
-    print(response.decode())
+    try:
+        print(response.decode())
+    except:
+        print("Cannot decode")
     tcpClient.sendall(response)
 if len(sys.argv) <= 1:
     print('Usage: "python ProxyServer.py server_ip"\n[server_ip : It is the IP Address Of Proxy Server]')
@@ -68,7 +74,6 @@ if len(sys.argv) <= 1:
 
 # Create a server socket, bind it to a port and start listening
 
-#AF_INET constant for the socket family, stand for Internet Protocol with IPv4 addresses
 #SOCK_STREAM for the socket type, needed for TCP
 server = socket(AF_INET, SOCK_STREAM)
 
@@ -82,7 +87,6 @@ server.bind((HOST, PORT))
 # become a server socket
 server.listen(10)
 print(f'Proxy server is listening on {HOST}:{PORT}')
-print('Ready to serve...')
 
 while True: 
     #Start receiving data from the client
