@@ -10,6 +10,13 @@ def send_error(conn):
         resdata = f.read()
     conn.send(b'HTTP/1.1 403 Forbidden\r\nContent-Type: text/html\r\n\r\n' + resdata.encode('ISO-8859-1'))
 
+def respond_client(response):
+    try:
+        print(response.decode())
+    except:
+        print("Cannot decode")
+        print(response)
+
 def extract_msg(msg):
     #Trích method
     method = msg.split()[0]
@@ -47,6 +54,7 @@ def handle_Client(tcpClient, addr):
     if not msg:
         return
     try: 
+        print(f"<><><><><><><><><><><><><><><><><><><><><><>")
         print(f"Receive connection from: {addr}\r\n")
     except:
         tcpClient.close()
@@ -73,7 +81,8 @@ def handle_Client(tcpClient, addr):
     server.connect((domain, 80))
 
     #In request và gửi request đã encode
-    print(request)
+    
+    print(f"Request from client to server: \r\n{request}")
     server.send(request.encode())
 
     #Bắt đầu nhận response
@@ -85,10 +94,8 @@ def handle_Client(tcpClient, addr):
         response += chunk
 
     #In ra response, sẽ làm thành một hàm sau 
-    try:
-        print(response.decode())
-    except:
-        print("Cannot decode")
+    
+    respond_client(response)
 
     #Gửi response về cho Client
     tcpClient.sendall(response)
