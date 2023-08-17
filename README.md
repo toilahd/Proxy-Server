@@ -1,2 +1,2 @@
 # Proxy-Server
-A simple proxy server project for CP course
+A simple proxy server project for CN course
