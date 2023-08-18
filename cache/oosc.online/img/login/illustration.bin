@@ -1,0 +1,10 @@
+HTTP/1.1 200 OK
+Content-Type: image/png
+Last-Modified: Mon, 19 Sep 2022 10:19:28 GMT
+Accept-Ranges: bytes
+ETag: "544cd04c11ccd81:0"
+Server: Microsoft-IIS/10.0
+X-Powered-By: ASP.NET
+Date: Fri, 18 Aug 2023 12:17:33 GMT
+Connection: close
+Content-Length: 41803

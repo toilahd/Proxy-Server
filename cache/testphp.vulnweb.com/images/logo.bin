@@ -1,0 +1,9 @@
+HTTP/1.1 200 OK
+Server: nginx/1.19.0
+Date: Fri, 18 Aug 2023 12:17:59 GMT
+Content-Type: image/gif
+Content-Length: 6660
+Last-Modified: Wed, 11 May 2011 10:27:46 GMT
+Connection: close
+ETag: "4dca64a2-1a04"
+Accept-Ranges: bytes

@@ -1,12 +1,12 @@
 {   
     "supported_methods" : ["GET", "POST", "HEAD"],
     "cache_time": 900,
-    "whitelisting_enabled": 0,
-    "whitelist" :["google.com", "example.com", "bing.com","vbsca.ca", "oosc.online", "testphp.vulnweb.com/login.php"],
-    "time_restriction": 0,
+    "whitelist_enabled": 0,
+    "white_list" :["google.com", "example.com", "bing.com","vbsca.ca", "oosc.online", "testphp.vulnweb.com/login.php"],
+    "time_restriction": 1,
     "time_allow": "8-20",
     "decode_format": "ISO-8859-1",
-    "supported_img_types": [
+    "supported_img_formats": [
         "apng", "avif", "gif", 
         "jpg", "jpeg", "jfif", "pjpeg", "pjp", "png", "svg", "webp", 
         "bmp", "ico", "cur", "tif", "tiff"
