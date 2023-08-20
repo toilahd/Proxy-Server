@@ -1,9 +1,8 @@
-import socket
 from socket import *
 import sys
 import threading
 import time as pytime
-from datetime import date, datetime, time
+from datetime import datetime, time
 import os
 import json
 
@@ -16,16 +15,17 @@ supported_methods, cache_time, whitelist_enabled, white_list, time_restriction, 
 def send403(conn):
     with open("403.html", 'r') as f:
         resdata = f.read()
-    conn.send(b'HTTP/1.1 403 Forbidden\r\nContent-Type: text/html\r\n\r\n' + resdata.encode('ISO-8859-1'))
+    conn.send(b'HTTP/1.1 403 Forbidden\r\nContent-Type: text/html\r\n\r\n' + resdata.encode(decode_format))
     print("Send HTTP Error 403 Forbidden")
 
 def respond_client(response):
-    data = response.decode().split('\r\n')[0]
+
+    data = response.decode(decode_format).split('\r\n')[0]
     try:
-        print("Response received: ")
-        print(data + '\r\n')
+       print("Response received: ")
+       print(data + '\r\n')
     except:
-        print("Cannot decode")
+       print("Cannot decode")
 
 
 def extract_msg(msg):
@@ -53,32 +53,7 @@ def check_time(img, img_header):
         return False, ""
     return True, img_header + b"\r\n\r\n" + img
 
-def getCachedImage(message):
-    method, webServer, file = extract_msg(message)
-    # If does not request image or image type not supported
-    filenameExtension = file.split("/").pop().partition(".")[2]
-    if filenameExtension not in supported_img_formats:
-        return False, ""
-    # Get the image and image header path
-    imgPath = f"{os.getcwd()}/cache/{webServer}{file}"
-    imgHeaderPath = imgPath[:imgPath.rfind(".")] + ".bin"
-    # If the image is cached
-    try:
-        with open(imgPath, "rb") as fb:
-            img = fb.read()
-        with open(imgHeaderPath, "rb") as fb:
-            imgHeader = fb.read()
-    except:
-        return False, ""
 
-    # Get current time and compare with img time + cache time
-    currentUTCtime = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
-    imgTimeStr = imgHeader.decode(decode_format).partition("Date: ")[2].partition(" GMT")[0].partition(", ")[2]
-    imgTime = datetime.datetime.strptime(imgTimeStr, "%d %b %Y %H:%M:%S")
-
-    if (imgTime + datetime.timedelta(seconds = int(cache_time)) <= currentUTCtime):
-        return False, ""
-    return True, imgHeader + b"\r\n\r\n" + img
 
 def ImgFromCache(msg):
     method, domain, file_path = extract_msg(msg)
@@ -109,47 +84,21 @@ def saveImg(img, img_path, img_header, img_header_path):
         file.write(img_header.encode(decode_format))
     return
 
-def saveImageToCache(message, webReply):
-    method, webServer, file = extract_msg(message)
-
-    # If does not request image or image type not supported
-    filenameExtension = file.split("/").pop().partition(".")[2]
-    if filenameExtension not in supported_img_formats:
-        return
-    
-    # Get the path of the image, header and the folder containing them
-    imgPath = f"{os.getcwd()}/cache/{webServer}{file}"
-    imgHeaderPath = imgPath[:imgPath.rfind(".")] + ".bin"
-    folderPath = imgPath[:imgPath.rfind("/")]
-
-    # If the folder does not exist, create that folder
-    if not os.path.exists(folderPath):
-        os.makedirs(folderPath)
-
-    # Save image and header to cache
-    imgHeader, trash, img = webReply.decode(decode_format).partition("\r\n\r\n")
-    with open(imgPath, "wb") as fb:
-        fb.write(img.encode(decode_format))
-    with open(imgHeaderPath, "wb") as fb:
-        fb.write(imgHeader.encode(decode_format))
-        
-    return
-
 def ImgToCache(msg, response):
 
     method, domain, file_path = extract_msg(msg)
 
-    # If does not request image or image type not supported
+    #nếu không hỗ trợ format của file thì return
     fileEx = file_path.split("/").pop().partition(".")[2]
     if fileEx not in supported_img_formats:
         return
     
-    # Get the path of the image, header and the folder containing them
+    # Lấy đường dẫn của ảnh, header và folder chứa nó
     img_path = f"{os.getcwd()}/cache/{domain}{file_path}"
     img_header_path = img_path[:img_path.rfind(".")] + ".bin"
     folder_path = img_path[:img_path.rfind("/")]
 
-    # If the folder does not exist, create that folder
+    # Nếu đường dẫn chưa tồn tại thì tạo ra
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
     img_header, trash, img = response.decode(decode_format).partition("\r\n\r\n")
@@ -171,8 +120,10 @@ def handle_requests(msg):
     #Tạo socket cho web server
     host = socket(AF_INET, SOCK_STREAM)
     #Ket noi toi web server voi port 80
-    host.connect((web_server, 80))
-
+    try:
+        host.connect((web_server, 80))
+    except Exception as e:
+        print("Error connecting to the web server:", e)
     request = f"{method} {file_path} HTTP/1.1\r\n"
     #Thêm Connection: close để tự ngắt kết nối khi đã nhận đủ dữ liệu 
     if method == "POST":
@@ -205,7 +156,8 @@ def handle_requests(msg):
 def handle_Client(tcpClient, addr):
     
     print(f"<><><><><><><><><><><><><><><><><><><><><><>\r\n") 
-     
+    
+    #nhận msg 
     try:
         msg = tcpClient.recv(4096)
     except:
@@ -225,9 +177,13 @@ def handle_Client(tcpClient, addr):
     if msg.find(b'Accept-Encoding:') != -1:
         msg = msg.replace(msg[msg.find(b'Accept-Encoding:'):].split(b'\r\n')[0] + b'\r\n', b'')
 
+     #Decode message 
+    msg = msg.decode(decode_format)
+    #Trích xuất method, domain và file_path từ msg 
+    method, domain, file_path = extract_msg(msg)
     #Nếu bật time-restriction và đang nằm trong khoảng thời gian không cho phép thì gửi mã 403
     start_time, end_time = map(int, time_allow.split('-'))    
-    if time_restriction and (time(start_time,0,0) < datetime.now().time() < time(end_time,0,0)):
+    if time_restriction and not (time(start_time,0,0) < datetime.now().time() < time(end_time,0,0)):
         print("Not in available time!")
         send403(tcpClient)
         tcpClient.close()
@@ -240,10 +196,7 @@ def handle_Client(tcpClient, addr):
         tcpClient.close()
         return  
 
-    #Decode message 
-    msg = msg.decode(decode_format)
-    #Trích xuất method, domain và file_path từ msg 
-    method, domain, file_path = extract_msg(msg)
+   
     
 
     #Nếu method nằm trong SUPPORTED_METHODS thì bắt đầu tạo resquest và gửi
@@ -258,7 +211,7 @@ def handle_Client(tcpClient, addr):
     
     #In ra response
     respond_client(response)
-
+    print("Close connection!")
     #Gửi response về cho Client
     tcpClient.sendall(response)
     tcpClient.close()
